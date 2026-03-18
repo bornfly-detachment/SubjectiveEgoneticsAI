@@ -1,0 +1,61 @@
+# ── Environment & Secrets ──────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.token
+
+# ── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+.Python
+
+# ── Virtual envs ───────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Data — training material & generated outputs ───────────────
+data/constitution/
+data/trajectories/
+data/checkpoints/
+
+# ── Database ───────────────────────────────────────────────────
+store/*.db
+store/*.db-shm
+store/*.db-wal
+
+# ── Model weights ──────────────────────────────────────────────
+models/weights/
+*.bin
+*.safetensors
+*.pt
+*.ckpt
+
+# ── Logs & temp ────────────────────────────────────────────────
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# ── IDE ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Test / coverage ────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
