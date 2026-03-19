@@ -1,9 +1,9 @@
 """
 Lifecycle management: start / stop / status / feedback resolution.
-POST /lifecycle/start  — translate task + launch agent loop
+POST /lifecycle/start  — compile task + launch agent loop (LangGraph)
 POST /lifecycle/stop   — stop running task
 GET  /lifecycle/status/{task_id}
-POST /lifecycle/feedback/{feedback_id} — resolve human_gate
+POST /lifecycle/feedback/{feedback_id} — resolve human_gate (LangGraph resume)
 WS   /ws/{task_id}     — real-time execution events
 """
 import asyncio
@@ -15,10 +15,8 @@ from pydantic import BaseModel
 
 from agent.translator import translate
 from agent.loop import AgentLoop
-from agent.executor import NodeExecutor
 from modules.action import ActionModule
 from modules.judge import JudgeModule
-from modules.env_feedback import EnvFeedbackModule
 from store.db import get_conn, row_to_dict, resolve_feedback
 from api.ws import ws_manager
 from client.egonetics import egonetics
@@ -26,46 +24,36 @@ from client.egonetics import egonetics
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# ── Shared module instances ──────────────────────────────────────────────────
+# ── Shared module instances ───────────────────────────────────────────────────
 
-_action      = ActionModule()
-_judge       = JudgeModule()
-_feedback_env = EnvFeedbackModule(_action)
+_action = ActionModule()
+_judge  = JudgeModule()
 
-# Running tasks: task_id → {canvas_id, loop_task}
+# Running tasks: task_id → {canvas_id, loop: AgentLoop, task: asyncio.Task}
 _running: dict[str, dict] = {}
 
 
 def _make_loop(task_id: str) -> AgentLoop:
-    """Create a fresh AgentLoop wired to WebSocket emit."""
-    async def notify(fb_id: str, tid: str, msg: str):
-        await ws_manager.emit(tid, "human_gate", {
-            "feedback_id": fb_id,
-            "message": msg,
-        })
-
+    """Create an AgentLoop wired to WebSocket emit."""
     async def emit(event: str, data: dict):
         await ws_manager.emit(task_id, event, data)
 
-    executor = NodeExecutor(_action, _judge, notify)
-    loop = AgentLoop(executor, emit=emit)
-    return loop
+    return AgentLoop(_action, _judge, emit_fn=emit)
 
 
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class StartRequest(BaseModel):
     task_id: str
-    canvas_id: Optional[str] = None   # None → auto-translate
+    canvas_id: Optional[str] = None   # None → auto-compile via NL2ExecGraph
     resources: dict = {}
-    # resources example: {"agents": ["claude_code","openclaw"], "budget_tokens": 50000, "timeout_hours": 24}
 
 
 class FeedbackRequest(BaseModel):
-    response: str
+    user_response: str
 
 
-# ── Routes ───────────────────────────────────────────────────────────────────
+# ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("/start")
 async def lifecycle_start(req: StartRequest):
@@ -74,19 +62,20 @@ async def lifecycle_start(req: StartRequest):
 
     canvas_id = req.canvas_id
 
-    # Auto-translate task → execution graph if no canvas provided
     if not canvas_id:
-        logger.info(f"Translating task {req.task_id} → execution graph")
-        await ws_manager.emit(req.task_id, "translating", {"message": "正在翻译任务为执行图…"})
+        await ws_manager.emit(req.task_id, "compiling", {"message": "NL2ExecGraph Compiler 正在编译任务…"})
         try:
             canvas_id = await translate(req.task_id, _action)
+        except RuntimeError as e:
+            # Meta-control block
+            raise HTTPException(403, str(e))
         except Exception as e:
-            logger.error(f"Translation failed: {e}")
-            raise HTTPException(500, f"任务翻译失败: {e}")
+            logger.error(f"Compilation failed: {e}")
+            raise HTTPException(500, f"任务编译失败: {e}")
 
     await ws_manager.emit(req.task_id, "graph_ready", {
         "canvas_id": canvas_id,
-        "message": "执行图已就绪，开始执行",
+        "message": "执行图就绪，LangGraph 开始执行",
     })
 
     loop = _make_loop(req.task_id)
@@ -98,10 +87,11 @@ async def lifecycle_start(req: StartRequest):
 
 async def _run(loop: AgentLoop, task_id: str, canvas_id: str):
     try:
-        await loop.run_task(task_id, canvas_id)
-        await ws_manager.emit(task_id, "task_done", {"message": "任务执行完成"})
+        await loop.run(task_id, canvas_id)
+    except asyncio.CancelledError:
+        logger.info(f"Loop cancelled: task={task_id}")
     except Exception as e:
-        logger.error(f"Agent loop error task={task_id}: {e}")
+        logger.error(f"Loop error task={task_id}: {e}")
         await ws_manager.emit(task_id, "task_failed", {"error": str(e)})
     finally:
         _running.pop(task_id, None)
@@ -131,28 +121,52 @@ async def lifecycle_status(task_id: str):
     ).fetchall()
     conn.close()
     return {
-        "task_id":    task_id,
-        "running":    task_id in _running,
-        "canvas_id":  _running.get(task_id, {}).get("canvas_id"),
-        "trajectories": [row_to_dict(r) for r in trajs],
+        "task_id":          task_id,
+        "running":          task_id in _running,
+        "canvas_id":        _running.get(task_id, {}).get("canvas_id"),
+        "trajectories":     [row_to_dict(r) for r in trajs],
         "pending_feedback": [row_to_dict(r) for r in feedback],
     }
 
 
 @router.post("/feedback/{feedback_id}")
 async def resolve_human_gate(feedback_id: str, req: FeedbackRequest):
-    """Resolve a human_gate or decision_query feedback item."""
-    resolve_feedback(feedback_id, req.response)
-    # Find task_id for the feedback so we can emit event
+    """
+    Resolve a human_gate or decision_query feedback.
+    If the issuing task is still in _running, resume the LangGraph via Command(resume=...).
+    """
+    resolve_feedback(feedback_id, req.user_response)
+
     conn = get_conn()
     row = conn.execute("SELECT task_id FROM user_feedback WHERE id=?", [feedback_id]).fetchone()
     conn.close()
-    if row:
-        await ws_manager.emit(row["task_id"], "feedback_resolved", {
-            "feedback_id": feedback_id,
-            "response": req.response,
-        })
-    return {"status": "resolved", "feedback_id": feedback_id}
+
+    if not row:
+        raise HTTPException(404, "Feedback not found")
+
+    task_id = dict(row)["task_id"]
+    await ws_manager.emit(task_id, "feedback_resolved", {
+        "feedback_id": feedback_id,
+        "response": req.user_response,
+    })
+
+    # Resume LangGraph if task is still managed
+    entry = _running.get(task_id)
+    if entry:
+        loop: AgentLoop = entry["loop"]
+        canvas_id = entry["canvas_id"]
+        # Run resume as a new task (the old task is blocked on interrupt)
+        asyncio.create_task(_resume(loop, task_id, canvas_id, req.user_response))
+
+    return {"status": "resolved", "feedback_id": feedback_id, "task_id": task_id}
+
+
+async def _resume(loop: AgentLoop, task_id: str, canvas_id: str, feedback_value: str):
+    try:
+        await loop.resume(task_id, canvas_id, feedback_value)
+    except Exception as e:
+        logger.error(f"Resume error task={task_id}: {e}")
+        await ws_manager.emit(task_id, "task_failed", {"error": str(e)})
 
 
 # ── WebSocket endpoint ────────────────────────────────────────────────────────
@@ -160,7 +174,6 @@ async def resolve_human_gate(feedback_id: str, req: FeedbackRequest):
 @router.websocket("/ws/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await ws_manager.connect(task_id, websocket)
-    # Send current status immediately on connect
     entry = _running.get(task_id)
     await websocket.send_json({
         "type": "connected",
@@ -170,7 +183,6 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
     })
     try:
         while True:
-            # Keep connection alive; client can send pings or feedback
             data = await websocket.receive_json()
             if data.get("type") == "ping":
                 await websocket.send_json({"type": "pong"})

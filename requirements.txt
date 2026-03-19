@@ -1,4 +1,6 @@
 absl-py==2.4.0
+langgraph>=0.3
+langgraph-checkpoint-sqlite>=1.0
 accelerate==1.11.0
 aiofiles==24.1.0
 aiohappyeyeballs==2.6.1

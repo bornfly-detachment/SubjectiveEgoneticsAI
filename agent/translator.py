@@ -1,57 +1,20 @@
 """
-Task Translator: human language Task → execution Graph
-Calls LLM to produce a structured execution plan, then writes it to Egonetics:
+Task Translator: writes a compiled graph definition to Egonetics.
   - Creates an execution canvas (canvas_type=execution, task_ref_id=task_id)
   - Creates exec_step pages (page_type=exec_step, ref_id=task_id)
   - Creates canvas nodes linking to those pages
+  - Creates canvas relations for edges
 Returns canvas_id.
+
+Graph compilation (NL → validated graph JSON) is handled by agent/compiler.py.
 """
 import json
 import logging
-from datetime import datetime
 
 from client.egonetics import egonetics
-from config.settings import settings
+from agent.compiler import NL2ExecGraphCompiler
 
 logger = logging.getLogger(__name__)
-
-TRANSLATE_SYSTEM = """\
-你是一个执行图生成器。将用户任务转换为机器控制论执行图，输出严格的 JSON。
-
-node_kind 类型说明：
-- lifecycle   生命周期控制节点，exec_config: {"action": "start"|"checkpoint"|"complete"}
-- llm_call    调用大模型推理，exec_config: {"prompt": "...", "system": "...", "model": "ark-code-latest", "budget_tokens": 4000}
-- tool_call   调用工具，exec_config: {"tool": "claude_code"|"openclaw"|"read_file"|"write_file", "args": {...}}
-- local_judge 本地模型价值判断，exec_config: {"question": "...", "confidence_threshold": 0.6}
-- rule_branch 规则分支，exec_config: {"condition": "ctx['变量名'] == '值'", "branches": {"true": <节点序号>, "false": <节点序号>}}
-- human_gate  人工介入，exec_config: {"prompt": "需要确认的问题", "blocking": true}
-
-输出格式（只输出 JSON，不要任何其他内容）：
-{
-  "title": "执行图标题",
-  "nodes": [
-    {
-      "index": 0,
-      "title": "节点名称",
-      "icon": "emoji",
-      "node_kind": "lifecycle",
-      "exec_config": {"action": "start"}
-    }
-  ],
-  "edges": [
-    {"from": 0, "to": 1}
-  ]
-}
-
-规则：
-1. 第一个节点必须是 lifecycle(start)，最后一个必须是 lifecycle(complete)
-2. 编码/文件操作任务用 tool_call:claude_code
-3. 多步协作任务或需要 session 的用 tool_call:openclaw
-4. 分析/推理用 llm_call
-5. 涉及价值判断/路由决策用 local_judge
-6. 边界不确定、需要用户确认用 human_gate
-7. 节点数量：简单任务 3-5 个，复杂任务 6-10 个，不要过度设计
-"""
 
 
 def _layout_positions(nodes: list, edges: list) -> list:
@@ -100,7 +63,7 @@ def _layout_positions(nodes: list, edges: list) -> list:
 
 async def translate(task_id: str, action_module) -> str:
     """
-    Translate a Task into an execution Canvas.
+    Compile task NL → validated graph → write to Egonetics.
     Returns canvas_id.
     """
     # 1. Fetch task from Egonetics
@@ -108,15 +71,14 @@ async def translate(task_id: str, action_module) -> str:
     task_title = task.get("title") or task.get("name") or "未命名任务"
     task_desc  = task.get("taskSummary") or task.get("description") or ""
 
-    # Fetch task page blocks for richer context
+    # Enrich task_desc from page blocks
     pages = await egonetics.list_pages(root_only=False, page_type="task")
     task_page = next((p for p in pages if p.get("refId") == task_id or p.get("id") == task_id), None)
     if task_page:
         try:
             blocks = await egonetics.get_page_blocks(task_page["id"])
-            # Extract text content from blocks
             block_texts = []
-            for b in blocks[:20]:  # limit context
+            for b in blocks[:20]:
                 content = b.get("content", {})
                 if isinstance(content, str):
                     try:
@@ -131,42 +93,11 @@ async def translate(task_id: str, action_module) -> str:
         except Exception as e:
             logger.warning(f"Cannot fetch task blocks: {e}")
 
-    user_prompt = f"任务标题：{task_title}\n\n任务描述：\n{task_desc or '（无描述）'}"
-    logger.info(f"Translating task {task_id}: {task_title}")
+    logger.info(f"Compiling task {task_id}: {task_title}")
 
-    # 2. Call LLM to generate execution graph
-    result = await action_module.llm_call(
-        prompt=user_prompt,
-        system=TRANSLATE_SYSTEM,
-        model=settings.default_llm_model,
-        max_tokens=2000,
-    )
-    raw = result["content"].strip()
-
-    # Strip markdown code fences if present
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-
-    try:
-        graph = json.loads(raw)
-    except Exception as e:
-        logger.error(f"Graph JSON parse failed: {e}\nRaw: {raw[:300]}")
-        # Fallback: minimal 3-node graph
-        graph = {
-            "title": task_title,
-            "nodes": [
-                {"index": 0, "title": "开始", "icon": "🚀", "node_kind": "lifecycle",
-                 "exec_config": {"action": "start"}},
-                {"index": 1, "title": task_title, "icon": "🤖", "node_kind": "llm_call",
-                 "exec_config": {"prompt": user_prompt, "budget_tokens": 4000}},
-                {"index": 2, "title": "完成", "icon": "✅", "node_kind": "lifecycle",
-                 "exec_config": {"action": "complete"}},
-            ],
-            "edges": [{"from": 0, "to": 1}, {"from": 1, "to": 2}],
-        }
+    # 2. NL2ExecGraph Compiler (Steps 0-3)
+    compiler = NL2ExecGraphCompiler(action_module)
+    graph = await compiler.compile(task_title, task_desc)
 
     nodes  = graph.get("nodes", [])
     edges  = graph.get("edges", [])
