@@ -8,7 +8,7 @@ from typing import Annotated, Any
 import operator
 
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.memory import MemorySaver
 from typing_extensions import TypedDict
 
 from client.egonetics import egonetics
@@ -51,10 +51,15 @@ async def build_graph(
     SqliteSaver is created and returned for the caller to close.
     """
     nodes = await egonetics.get_nodes(canvas_id)
-    relations = await egonetics.get_relations(source_id=canvas_id)
 
     if not nodes:
         raise ValueError(f"Canvas {canvas_id} has no nodes")
+
+    # Fetch relations per canvas node (relations are stored with node_id as source_id)
+    relations: list[dict] = []
+    for node in nodes:
+        node_rels = await egonetics.get_relations(source_id=node["id"])
+        relations.extend(node_rels)
 
     # Build adjacency: node_id → [child node_ids]
     adj: dict[str, list[str]] = {}
@@ -139,7 +144,7 @@ async def build_graph(
     # ── Compile with checkpointer ──
     owns_checkpointer = checkpointer is None
     if checkpointer is None:
-        checkpointer = SqliteSaver.from_conn_string(settings.db_path)
+        checkpointer = MemorySaver()
 
     compiled = builder.compile(checkpointer=checkpointer)
     logger.info(f"Built LangGraph: canvas={canvas_id}, nodes={len(nodes)}, edges={len(relations)}")

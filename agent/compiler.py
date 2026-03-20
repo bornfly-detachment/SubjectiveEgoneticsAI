@@ -184,7 +184,7 @@ class NL2ExecGraphCompiler:
         )
 
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
                 resp = await client.post(
                     f"{settings.inference_url}/judge",
                     json={"question": question, "context": {}},

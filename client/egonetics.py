@@ -20,25 +20,25 @@ class EgoneticsClient:
         return h
 
     async def _get(self, path: str, params: dict = None) -> Any:
-        async with httpx.AsyncClient(timeout=30) as c:
+        async with httpx.AsyncClient(timeout=30, trust_env=False) as c:
             r = await c.get(f"{self.base}{path}", headers=self.headers, params=params)
             r.raise_for_status()
             return r.json()
 
     async def _post(self, path: str, body: dict = None) -> Any:
-        async with httpx.AsyncClient(timeout=60) as c:
+        async with httpx.AsyncClient(timeout=60, trust_env=False) as c:
             r = await c.post(f"{self.base}{path}", headers=self.headers, json=body or {})
             r.raise_for_status()
             return r.json()
 
     async def _patch(self, path: str, body: dict) -> Any:
-        async with httpx.AsyncClient(timeout=30) as c:
+        async with httpx.AsyncClient(timeout=30, trust_env=False) as c:
             r = await c.patch(f"{self.base}{path}", headers=self.headers, json=body)
             r.raise_for_status()
             return r.json()
 
     async def _delete(self, path: str) -> Any:
-        async with httpx.AsyncClient(timeout=30) as c:
+        async with httpx.AsyncClient(timeout=30, trust_env=False) as c:
             r = await c.delete(f"{self.base}{path}", headers=self.headers)
             r.raise_for_status()
             return r.json()
@@ -162,9 +162,11 @@ class EgoneticsClient:
         return await self._get("/api/pages", {"taskRefId": task_id})
 
     async def append_block_to_page(self, page_id: str, block_type: str,
-                                    content: dict, creator: str = "agent") -> dict:
-        """Append a block to a page (exec_step output, etc.)."""
-        return await self._post(f"/api/pages/{page_id}/blocks", {
+                                    content, creator: str = "agent") -> dict:
+        """Append a single block to a page without overwriting existing blocks."""
+        if isinstance(content, str):
+            content = {"text": content}
+        return await self._post(f"/api/pages/{page_id}/blocks/append", {
             "type": block_type,
             "content": content,
             "creator": creator,

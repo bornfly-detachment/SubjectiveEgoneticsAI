@@ -24,12 +24,16 @@ class ActionModule:
 
     async def _call_anthropic(self, system: str, prompt: str, model: str, max_tokens: int) -> dict:
         import anthropic
+        import httpx as _httpx
 
         kwargs = {
             "api_key": settings.anthropic_api_key,
         }
         if settings.anthropic_base_url:
             kwargs["base_url"] = settings.anthropic_base_url
+        # Use explicit proxy for external LLM calls; avoids inheriting HTTP_PROXY for localhost
+        if settings.llm_proxy:
+            kwargs["http_client"] = _httpx.AsyncClient(proxy=settings.llm_proxy)
 
         client = anthropic.AsyncAnthropic(**kwargs)
 

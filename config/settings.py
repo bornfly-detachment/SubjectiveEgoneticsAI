@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     default_llm_provider: str = "anthropic"  # or "openai"
     default_llm_model: str = "ark-code-latest"
+    llm_proxy: str = ""            # explicit HTTP proxy for LLM API calls (e.g. http://127.0.0.1:15369)
 
     db_path: str = str(BASE_DIR / "store" / "exec.db")
     checkpoints_dir: str = str(BASE_DIR / "data" / "checkpoints")
