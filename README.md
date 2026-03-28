@@ -5,6 +5,7 @@
 SubjectiveEgoneticsAI is the AI brain that drives the [Egonetics](https://github.com/bornfly-detachment/egonetics) personal agent system. It receives tasks from Egonetics, translates them into execution graphs, orchestrates multi-agent workflows (Claude Code + OpenClaw + local LLM), and writes results back — all observable in real time via WebSocket.
 
 ---
+  
 
 ## Architecture
 
@@ -220,6 +221,37 @@ SubjectiveEgoneticsAI/
 ├── pyproject.toml
 └── requirements.txt
 ```
+
+---
+
+## Reward / Value System (V)
+
+SubjectiveEgoneticsAI's reward computation follows the **PRVSE V = {objective, external, internal}** three-dimensional vector, defined in [Egonetics `/protocol`](https://github.com/bornfly-detachment/egonetics):
+
+| Dimension | Type | Examples |
+|---|---|---|
+| **V1 objective** | Deterministic physical | token_count, time_elapsed, success_rate (float [0,1]), binary ✅❎ |
+| **V2 external** | Factor-graph probability | confidence, causal_prob, narrative_legitimacy, narrative_completeness |
+| **V3 internal** | Constitutional rules (deterministic) | constitutional_rule_N, value_alignment, narrative_consistency |
+
+### φ Functions — Factor Graph Model
+
+V2/V3 are computed as a product of φ factors over the PRVSE graph:
+
+```
+P(G) = ∏ φ(Node_i, Node_j, Edge_k, Constraint)
+```
+
+Four φ function types, each mapping to PRVSE R edge types:
+
+| φ | Formula | R edge types |
+|---|---|---|
+| `φ_causal` | P(B\|do(A))·C(E) | derives, signal |
+| `φ_temporal` | P(B\|A, t_A≺t_B) | directed |
+| `φ_contradiction` | 1−\|P(A)−P(B)\|·tension | mutual_constraint |
+| `φ_dependency` | P(B\|A)·I(A→B) | constraint, contains |
+
+**Key principle**: φ functions are independently defined; V2/V3 metrics declare their type at schema time; the factor graph composes them dynamically at runtime. Policy = the PRVSE graph traversal itself (P→R+V→S), not a separate weighting function.
 
 ---
 
