@@ -5,6 +5,7 @@ BASE_DIR = Path(__file__).parent.parent
 
 class Settings(BaseSettings):
     egonetics_url: str = "http://localhost:3002"
+    egonetics_host: str = "localhost:3002"   # WebSocket host（不含协议）
     egonetics_token: str = ""
 
     model_path: str = "/Users/bornfly/Desktop/qwen-edge-llm/model_weights/Qwen/Qwen2-0.5B-Instruct"
@@ -12,11 +13,11 @@ class Settings(BaseSettings):
     api_port: int = 8000
     inference_url: str = "http://localhost:8001"
 
-    anthropic_api_key: str = ""
-    anthropic_base_url: str = ""   # override; leave empty for official API
+    anthropic_api_key: str = ""   # MiniMax API key
+    anthropic_base_url: str = "https://api.minimaxi.com/anthropic"  # MiniMax endpoint
     openai_api_key: str = ""
     default_llm_provider: str = "anthropic"  # or "openai"
-    default_llm_model: str = "ark-code-latest"
+    default_llm_model: str = "MiniMax-M2.7"
     llm_proxy: str = ""            # explicit HTTP proxy for LLM API calls (e.g. http://127.0.0.1:15369)
 
     db_path: str = str(BASE_DIR / "store" / "exec.db")
