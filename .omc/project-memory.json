@@ -245,6 +245,12 @@
       "accessCount": 1,
       "lastAccessed": 1776096100367,
       "type": "file"
+    },
+    {
+      "path": "configs/sft_qwen3.5.yaml",
+      "accessCount": 1,
+      "lastAccessed": 1776096104802,
+      "type": "file"
     }
   ],
   "userDirectives": []
