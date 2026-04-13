@@ -193,6 +193,12 @@
       "type": "file"
     },
     {
+      "path": "config/settings.py",
+      "accessCount": 2,
+      "lastAccessed": 1776094994305,
+      "type": "file"
+    },
+    {
       "path": "models",
       "accessCount": 1,
       "lastAccessed": 1776073998479,
@@ -232,12 +238,6 @@
       "path": "requirements.txt",
       "accessCount": 1,
       "lastAccessed": 1776074568327,
-      "type": "file"
-    },
-    {
-      "path": "config/settings.py",
-      "accessCount": 1,
-      "lastAccessed": 1776094984902,
       "type": "file"
     }
   ],

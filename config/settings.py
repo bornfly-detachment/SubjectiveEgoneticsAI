@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     node_timeout_seconds: int = 300
     max_loop_detection_count: int = 3
 
-    # Training triggers
+    # Training
+    llamafactory_venv: str = str(Path.home() / "llama-factory" / "venv" / "bin" / "python")
     grpo_trigger_count: int = 50   # new trajectories before GRPO run
     sft_trigger_count: int = 20    # new feedback samples before SFT run
 
