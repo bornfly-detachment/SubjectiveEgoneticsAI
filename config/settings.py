@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     max_loop_detection_count: int = 3
 
     # Training
-    llamafactory_venv: str = str(Path.home() / "llama-factory" / "venv" / "bin" / "python")
+    llamafactory_cli: str = str(Path.home() / "llama-factory" / "venv" / "bin" / "llamafactory-cli")
     grpo_trigger_count: int = 50   # new trajectories before GRPO run
     sft_trigger_count: int = 20    # new feedback samples before SFT run
 
