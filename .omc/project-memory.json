@@ -175,16 +175,16 @@
   },
   "hotPaths": [
     {
+      "path": "models/training/sft.py",
+      "accessCount": 3,
+      "lastAccessed": 1776095003583,
+      "type": "file"
+    },
+    {
       "path": "",
       "accessCount": 2,
       "lastAccessed": 1776074162657,
       "type": "directory"
-    },
-    {
-      "path": "models/training/sft.py",
-      "accessCount": 2,
-      "lastAccessed": 1776074169306,
-      "type": "file"
     },
     {
       "path": "models/training/grpo.py",
