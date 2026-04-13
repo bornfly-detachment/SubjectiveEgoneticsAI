@@ -1,7 +1,7 @@
 {
   "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"/Users/bornfly/.claude/projects/-Users-bornfly-Desktop-SubjectiveEgoneticsAI/c5338ac9-1279-4533-aedd-dd6c1f566507.jsonl\",\"limit\":100}",
-  "error": "File content (27009 tokens) exceeds maximum allowed tokens (25000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
-  "timestamp": "2026-04-13T17:19:17.416Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"file_path\":\"/Users/bornfly/.claude/constitution/subjectivity/value-judgment-6principles.md\"}",
+  "error": "File does not exist. Note: your current working directory is /Users/bornfly/Desktop/SubjectiveEgoneticsAI.",
+  "timestamp": "2026-04-13T17:34:17.166Z",
+  "retry_count": 1
 }
