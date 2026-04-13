@@ -38,7 +38,7 @@ def run_grpo():
         "learning_rate": 1e-5,
         "grpo_beta": 0.04,
         "num_generations": 8,
-        "bf16": True,
+        "fp16": True,
         "max_steps": 200
     }
     config_path = output_dir / "grpo_config.json"

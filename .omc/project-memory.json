@@ -187,16 +187,16 @@
       "type": "file"
     },
     {
+      "path": "models/training/grpo.py",
+      "accessCount": 2,
+      "lastAccessed": 1776074170478,
+      "type": "file"
+    },
+    {
       "path": "models",
       "accessCount": 1,
       "lastAccessed": 1776073998479,
       "type": "directory"
-    },
-    {
-      "path": "models/training/grpo.py",
-      "accessCount": 1,
-      "lastAccessed": 1776074006687,
-      "type": "file"
     },
     {
       "path": "models/training/data_gen.py",
@@ -214,6 +214,30 @@
       "path": "api/routes/model.py",
       "accessCount": 1,
       "lastAccessed": 1776074161905,
+      "type": "file"
+    },
+    {
+      "path": "models/training",
+      "accessCount": 1,
+      "lastAccessed": 1776074176660,
+      "type": "directory"
+    },
+    {
+      "path": "store/schema.sql",
+      "accessCount": 1,
+      "lastAccessed": 1776074568035,
+      "type": "file"
+    },
+    {
+      "path": "requirements.txt",
+      "accessCount": 1,
+      "lastAccessed": 1776074568327,
+      "type": "file"
+    },
+    {
+      "path": "config/settings.py",
+      "accessCount": 1,
+      "lastAccessed": 1776094984902,
       "type": "file"
     }
   ],
