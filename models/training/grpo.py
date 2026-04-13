@@ -49,9 +49,8 @@ def run_grpo():
     reward_avg = sum(s["reward"] for s in samples) / len(samples) if samples else 0
     logger.info(f"Starting GRPO training -> {output_dir}, avg_reward={reward_avg:.3f}")
 
-    python = settings.llamafactory_venv
     result = subprocess.run(
-        [python, "-m", "llamafactory.cli", "train", str(config_path)],
+        [settings.llamafactory_venv, "train", str(config_path)],
         capture_output=True, text=True
     )
 
