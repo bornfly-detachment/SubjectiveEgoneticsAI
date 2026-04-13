@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     egonetics_host: str = "localhost:3002"   # WebSocket host（不含协议）
     egonetics_token: str = ""
 
-    model_path: str = "/Users/bornfly/Desktop/qwen-edge-llm/model_weights/Qwen/Qwen2-0.5B-Instruct"
+    model_path: str = "/Users/bornfly/Desktop/qwen-edge-llm/model_weights/Qwen/Qwen3.5-0.8B"
     inference_port: int = 8001
     api_port: int = 8000
     inference_url: str = "http://localhost:8001"
@@ -38,5 +38,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 settings = Settings()

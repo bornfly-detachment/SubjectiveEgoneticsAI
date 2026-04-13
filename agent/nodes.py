@@ -4,11 +4,13 @@ Each factory returns an async callable (state: ExecState) -> dict.
 """
 import json
 import logging
+import time
 from typing import Callable, Any
 
 from langgraph.types import interrupt
 
 from store.db import save_trajectory, complete_trajectory, fail_trajectory, create_feedback, gen_id
+from modules.prvse.v import compute_reward, ExecutionContext
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -61,6 +63,7 @@ def make_node_fn(
         await emit_fn("node_start", {"node_id": node_id, "canvas_id": canvas_id, "node_kind": kind})
 
         traj_id = save_trajectory(task_id, canvas_id, node_id, kind, {"exec_config": exec_config})
+        _start_ms = int(time.time() * 1000)
 
         try:
             output, cost, error = await _dispatch(kind, exec_config, ctx, action_module, judge_module, task_id)
@@ -68,6 +71,9 @@ def make_node_fn(
             error = str(e)
             output = None
             cost = {}
+
+        net_time_ms = int(time.time() * 1000) - _start_ms
+        cost["time_ms"] = net_time_ms
 
         if error:
             fail_trajectory(traj_id, error)
@@ -83,7 +89,21 @@ def make_node_fn(
                 "failed_nodes": [node_id],
             }
         else:
-            complete_trajectory(traj_id, output or {}, cost)
+            # V 层：计算 reward 并写入 trajectory
+            v_ctx = ExecutionContext(
+                task_id=task_id,
+                trajectory_id=traj_id,
+                node_id=node_id,
+                node_kind=kind,
+                status="success",
+                input_context={"exec_config": exec_config},
+                output_result=output or {},
+                cost_vector=cost,
+                net_time_ms=net_time_ms,
+                budget_tokens=exec_config.get("budget_tokens", 4000),
+            )
+            reward_result = compute_reward(v_ctx)
+            complete_trajectory(traj_id, output or {}, cost, reward=reward_result.total_reward)
             try:
                 await egonetics_client.set_node_lifecycle(canvas_id, node_id, "success", cost)
             except Exception:

@@ -92,6 +92,69 @@ CREATE TABLE IF NOT EXISTS constitution_rules (
     updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- V layer reward functions (system built-in + user-defined, full CRUD)
+CREATE TABLE IF NOT EXISTS v_functions (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    unit        TEXT NOT NULL DEFAULT 'score',
+    weight      REAL NOT NULL DEFAULT 1.0,
+    trigger     TEXT NOT NULL DEFAULT 'any',
+    expression  TEXT,               -- NULL=system builtin (logic in Python); non-NULL=user expr evaluated against ctx
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    is_builtin  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- E0 lifecycle state machines (e0 / task / agent / model)
+CREATE TABLE IF NOT EXISTS e0_lifecycles (
+    id          TEXT PRIMARY KEY,   -- 'e0' | 'task' | 'agent' | 'model' | user-defined
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    state       TEXT NOT NULL DEFAULT 'IDLE',  -- IDLE|OBSERVING|REFLECTING|TRAINING|VALIDATING|ACTIVATING
+    state_meta  TEXT NOT NULL DEFAULT '{}',
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    is_builtin  INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- PRVSE component tree — each leaf node per lifecycle
+CREATE TABLE IF NOT EXISTS prvse_components (
+    id           TEXT PRIMARY KEY,            -- '{lifecycle_id}.{layer}.{sub_id}'
+    lifecycle_id TEXT NOT NULL REFERENCES e0_lifecycles(id) ON DELETE CASCADE,
+    layer        TEXT NOT NULL,               -- 'P'|'R'|'V'|'S'|'E'
+    sub_id       TEXT NOT NULL,               -- e.g. 'observe', 'entity', 'local', 'define', 'diff'
+    name         TEXT NOT NULL,
+    description  TEXT NOT NULL DEFAULT '',
+    status       TEXT NOT NULL DEFAULT 'inactive',  -- 'active'|'inactive'|'error'|'running'
+    config       TEXT NOT NULL DEFAULT '{}',
+    is_builtin   INTEGER NOT NULL DEFAULT 1,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(lifecycle_id, layer, sub_id)
+);
+
+-- Execution queue: 24/7 machine task queue (separate from user tasks in Egonetics)
+CREATE TABLE IF NOT EXISTS execution_queue (
+    id              TEXT PRIMARY KEY,
+    description     TEXT NOT NULL,
+    v_criteria      TEXT NOT NULL DEFAULT '{}',  -- {pass_condition, score_fn}
+    state           TEXT NOT NULL DEFAULT 'pending',  -- pending|running|done|failed|blocked
+    assigned_node   TEXT,                        -- local|claude-code|openclaw
+    task_ref_id     TEXT,                        -- Egonetics task ID (可选桥接)
+    output          TEXT,                        -- execution output
+    v_score         REAL,                        -- V function score
+    state_tags      TEXT NOT NULL DEFAULT '[]',  -- S层状态标签 ID 数组
+    resource_cost   TEXT NOT NULL DEFAULT '{}',  -- {token_input, token_output, time_ms}
+    error_msg       TEXT,
+    sort_order      REAL NOT NULL DEFAULT 0,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    started_at      TEXT,
+    completed_at    TEXT
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_traj_task ON trajectories(task_id);
 CREATE INDEX IF NOT EXISTS idx_traj_status ON trajectories(status);
@@ -99,3 +162,5 @@ CREATE INDEX IF NOT EXISTS idx_feedback_task ON user_feedback(task_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_resolved ON user_feedback(resolved);
 CREATE INDEX IF NOT EXISTS idx_failure_task ON failure_cases(task_id);
 CREATE INDEX IF NOT EXISTS idx_model_active ON model_versions(is_active);
+CREATE INDEX IF NOT EXISTS idx_queue_state ON execution_queue(state);
+CREATE INDEX IF NOT EXISTS idx_queue_order ON execution_queue(sort_order);

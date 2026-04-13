@@ -1,0 +1,178 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1776019208037,
+  "projectRoot": "/Users/bornfly/Desktop/SubjectiveEgoneticsAI",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml",
+          "requirements.txt"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "pip",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "agent": {
+      "path": "agent",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1776019207997,
+      "keyFiles": [
+        "__init__.py",
+        "backtrack.py",
+        "compiler.py",
+        "executor.py",
+        "graph.py"
+      ]
+    },
+    "api": {
+      "path": "api",
+      "purpose": "API routes",
+      "fileCount": 3,
+      "lastAccessed": 1776019208001,
+      "keyFiles": [
+        "__init__.py",
+        "main.py",
+        "ws.py"
+      ]
+    },
+    "client": {
+      "path": "client",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1776019208001,
+      "keyFiles": [
+        "__init__.py",
+        "egonetics.py",
+        "egonetics_sync.py"
+      ]
+    },
+    "config": {
+      "path": "config",
+      "purpose": "Configuration files",
+      "fileCount": 2,
+      "lastAccessed": 1776019208002,
+      "keyFiles": [
+        "__init__.py",
+        "settings.py"
+      ]
+    },
+    "data": {
+      "path": "data",
+      "purpose": "Data files",
+      "fileCount": 0,
+      "lastAccessed": 1776019208002,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 3,
+      "lastAccessed": 1776019208003,
+      "keyFiles": [
+        "API.md",
+        "ARCHITECTURE.md",
+        "INFERENCE_API.md"
+      ]
+    },
+    "models": {
+      "path": "models",
+      "purpose": "Data models",
+      "fileCount": 2,
+      "lastAccessed": 1776019208004,
+      "keyFiles": [
+        "__init__.py",
+        "inference.py"
+      ]
+    },
+    "modules": {
+      "path": "modules",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1776019208006,
+      "keyFiles": [
+        "__init__.py",
+        "action.py",
+        "env_feedback.py",
+        "judge.py"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 3,
+      "lastAccessed": 1776019208008,
+      "keyFiles": [
+        "import_constitution.py",
+        "init_db.py",
+        "start.sh"
+      ]
+    },
+    "store": {
+      "path": "store",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1776019208008,
+      "keyFiles": [
+        "__init__.py",
+        "db.py",
+        "exec.db",
+        "migrate_controller_layers.py",
+        "schema.sql"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 1,
+      "lastAccessed": 1776019208011,
+      "keyFiles": [
+        "__init__.py"
+      ]
+    },
+    "api/routes": {
+      "path": "api/routes",
+      "purpose": "Route handlers",
+      "fileCount": 11,
+      "lastAccessed": 1776019208025,
+      "keyFiles": [
+        "__init__.py",
+        "agent.py",
+        "e0.py"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}
