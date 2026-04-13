@@ -52,9 +52,8 @@ def run_sft():
     (output_dir / "dataset_info.json").write_text(json.dumps(dataset_info))
 
     logger.info(f"Starting SFT training -> {output_dir}")
-    python = settings.llamafactory_venv
     result = subprocess.run(
-        [python, "-m", "llamafactory.cli", "train", str(config_path)],
+        [settings.llamafactory_venv, "train", str(config_path)],
         capture_output=True, text=True
     )
 
