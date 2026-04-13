@@ -50,7 +50,7 @@ def run_grpo():
     logger.info(f"Starting GRPO training -> {output_dir}, avg_reward={reward_avg:.3f}")
 
     result = subprocess.run(
-        [settings.llamafactory_venv, "train", str(config_path)],
+        [settings.llamafactory_cli, "train", str(config_path)],
         capture_output=True, text=True
     )
 
