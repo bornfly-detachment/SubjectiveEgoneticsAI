@@ -53,7 +53,7 @@ def run_sft():
 
     logger.info(f"Starting SFT training -> {output_dir}")
     result = subprocess.run(
-        [settings.llamafactory_venv, "train", str(config_path)],
+        [settings.llamafactory_cli, "train", str(config_path)],
         capture_output=True, text=True
     )
 
