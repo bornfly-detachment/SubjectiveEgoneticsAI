@@ -239,6 +239,12 @@
       "accessCount": 1,
       "lastAccessed": 1776074568327,
       "type": "file"
+    },
+    {
+      "path": "data/datasets/dataset_info.json",
+      "accessCount": 1,
+      "lastAccessed": 1776096100367,
+      "type": "file"
     }
   ],
   "userDirectives": []
